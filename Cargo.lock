@@ -1,0 +1,4 @@
+[root]
+name = "redis-ish"
+version = "0.1.0"
+

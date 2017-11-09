@@ -1,0 +1,6 @@
+[package]
+name = "redis-ish"
+version = "0.1.0"
+authors = ["Bastien Abadie <bastien@nextcairn.com>"]
+
+[dependencies]
