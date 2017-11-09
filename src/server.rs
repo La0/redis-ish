@@ -59,6 +59,10 @@ impl Server {
                                 error!("{} : No input, force quit.", client);
                                 break;
                             }
+                            Err(ClientError::DecodingFailed) => {
+                                error!("{} : Client stream decoding failed", client);
+                                break;
+                            }
                             Err(ClientError::ReadFailure(_e)) => {
                                 error!("{} : Network read failure, force quit.", client);
                                 break;

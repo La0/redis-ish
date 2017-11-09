@@ -1,16 +1,19 @@
+use std::str;
 use std::net::{TcpStream, Shutdown};
 use std::io::{Read, Write, Error as IOError};
 use std::fmt;
-use commands::{Command, parse_command};
+use commands::{Command, Parser};
 
 pub enum ClientError {
     NoInput,
     InvalidCommand,
     ReadFailure(IOError),
+    DecodingFailed,
 }
 
 pub struct Client {
     stream : TcpStream,
+    parser : Parser,
 }
 
 impl fmt::Display for Client {
@@ -24,6 +27,7 @@ impl Client {
     pub fn new(stream : TcpStream) -> Self {
         Client {
             stream: stream,
+            parser: Parser::new(),
         }
     }
 
@@ -62,9 +66,14 @@ impl Client {
                 }
 
                 // Output the parsed command
-                match parse_command(&mut buffer) {
-                    Some(cmd) => Ok(cmd),
-                    None => Err(ClientError::InvalidCommand),
+                match str::from_utf8(&buffer) {
+                    Ok(payload) => {
+                        match self.parser.find_command(payload) {
+                            Some(cmd) => Ok(cmd),
+                            None => Err(ClientError::InvalidCommand),
+                        }
+                    }
+                    Err(_) => Err(ClientError::DecodingFailed),
                 }
             }
 

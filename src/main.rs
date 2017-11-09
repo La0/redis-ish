@@ -5,6 +5,8 @@ mod commands;
 extern crate pretty_env_logger;
 #[macro_use] extern crate log;
 
+extern crate regex;
+
 use server::Server;
 
 fn main() {
