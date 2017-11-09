@@ -4,25 +4,25 @@ use commands::Command;
 use client::Client;
 
 pub struct Server {
-	listener : TcpListener,
-	data: VecDeque<String>,
+    listener : TcpListener,
+    data: VecDeque<String>,
 }
 
 impl Server {
 
-	// Create new listening TCP server
-	pub fn new(bind_to: String) -> Self {
-		Server {
-			listener: TcpListener::bind(bind_to).unwrap(), 
-			data: VecDeque::default(),
-		}
-	}
+    // Create new listening TCP server
+    pub fn new(bind_to: String) -> Self {
+        Server {
+            listener: TcpListener::bind(bind_to).unwrap(), 
+            data: VecDeque::default(),
+        }
+    }
 
-	pub fn run(&mut self) {
-		loop {
+    pub fn run(&mut self) {
+        loop {
 
-			match self.listener.accept() {
-				Ok((stream, _)) => {
+            match self.listener.accept() {
+                Ok((stream, _)) => {
                     let mut client = Client::new(stream);
                     info!("New {}", client);
 
@@ -37,7 +37,7 @@ impl Server {
                                 info!("{} >> Get", client);
                                 match self.data.pop_back() {
                                     Some(x) => client.send(String::from(format!("Last value = {}", x))),
-                                    None =>	client.send(String::from("No data !")),
+                                    None =>    client.send(String::from("No data !")),
                                 }
                             }
                             Ok(Command::Put(x)) => {
@@ -58,9 +58,9 @@ impl Server {
                             }
                         }
                     }
-				}
-				Err(e) => println!("couldn't get client: {:?}", e),
-			}
-		}
-	}
+                }
+                Err(e) => println!("couldn't get client: {:?}", e),
+            }
+        }
+    }
 }
