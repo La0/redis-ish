@@ -1,7 +1,7 @@
 use std::net::TcpListener;
 use std::collections::VecDeque;
 use commands::Command;
-use client::Client;
+use client::{Client, ClientError};
 
 pub struct Server {
     listener : TcpListener,
@@ -50,10 +50,17 @@ impl Server {
                                 client.quit();
                                 break;
                             }
-                            Err(e) => {
-                                // TODO: support complex error type
-                                error!("{} : {}", client, e);
-                                client.send(String::from(format!("Error: {}", e)));
+                            Err(ClientError::InvalidCommand) => {
+                                // Do not kill connection on invalid command
+                                warn!("{} : Invalid command", client);
+                                client.send(String::from("Invalid command"));
+                            }
+                            Err(ClientError::NoInput) => {
+                                error!("{} : No input, force quit.", client);
+                                break;
+                            }
+                            Err(ClientError::ReadFailure(_e)) => {
+                                error!("{} : Network read failure, force quit.", client);
                                 break;
                             }
                         }

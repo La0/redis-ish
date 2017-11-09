@@ -1,8 +1,13 @@
 use std::net::{TcpStream, Shutdown};
-use std::io::{Read, Write};
+use std::io::{Read, Write, Error as IOError};
 use std::fmt;
 use commands::{Command, parse_command};
 
+pub enum ClientError {
+    NoInput,
+    InvalidCommand,
+    ReadFailure(IOError),
+}
 
 pub struct Client {
     stream : TcpStream,
@@ -43,7 +48,7 @@ impl Client {
     }
 
     // Wait for a command on the tcp stream
-    pub fn wait_command(&mut self) -> Result<Command, String> {
+    pub fn wait_command(&mut self) -> Result<Command, ClientError> {
 
         let mut buffer: [u8; 20] = [0; 20];
         match self.stream.read(&mut buffer) {
@@ -52,17 +57,17 @@ impl Client {
 
                 // Avoid looping on closed connection
                 if size == 0 {
-                    return Err(String::from("No input"));
+                    return Err(ClientError::NoInput);
                 }
 
                 // Output the parsed command
                 match parse_command(&mut buffer) {
                     Some(cmd) => Ok(cmd),
-                    None => Err(String::from("No command found.")),
+                    None => Err(ClientError::InvalidCommand),
                 }
             }
 
-            Err(e) => Err(format!("No input from client. Err: {}", e)),
+            Err(e) => Err(ClientError::ReadFailure(e)),
         }
     }
 
