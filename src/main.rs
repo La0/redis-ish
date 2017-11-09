@@ -1,4 +1,5 @@
 mod server;
+mod client;
 mod commands;
 
 use server::Server;
