@@ -23,7 +23,7 @@ pub fn parse_command(buffer: &mut [u8]) -> Option<Command> {
 		}
 
 		Err(e) => {
-            print!("Decoder failure : {}", e);
+            error!("Decoder failure : {}", e);
             None
         }
 	}
