@@ -36,14 +36,14 @@ impl Server {
                             Ok(Command::Get) => {
                                 info!("{} >> Get", client);
                                 match self.data.pop_back() {
-                                    Some(x) => client.send(String::from(format!("Last value = {}", x))),
-                                    None =>    client.send(String::from("No data !")),
+                                    Some(x) => client.send(format!("Last value = {}", x)),
+                                    None => client.send("No data !"),
                                 }
                             }
                             Ok(Command::Put(x)) => {
                                 info!("{} >> Put({})", client, x);
                                 self.data.push_back(x.clone());
-                                client.send(String::from(format!("Stored {}", x)));
+                                client.send(format!("Stored {}", x));
                             }
                             Ok(Command::Quit) => {
                                 warn!("{} >> Quit", client);
@@ -53,7 +53,7 @@ impl Server {
                             Err(ClientError::InvalidCommand) => {
                                 // Do not kill connection on invalid command
                                 warn!("{} : Invalid command", client);
-                                client.send(String::from("Invalid command"));
+                                client.send("Invalid command");
                             }
                             Err(ClientError::NoInput) => {
                                 error!("{} : No input, force quit.", client);

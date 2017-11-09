@@ -28,18 +28,19 @@ impl Client {
     }
 
     pub fn hello(&mut self) {
-        self.send(String::from("Hello from redis-ish !"));
+        self.send("Hello from redis-ish !");
     }
 
     pub fn quit(&mut self) {
-        self.send(String::from("Bye !"));
+        self.send("Bye !");
         let _ = self.stream.shutdown(Shutdown::Both);
     }
 
     // Send a string on a tcp stream
-    pub fn send(&mut self, message: String) {
+    // Supports str& and String as message
+    pub fn send<T: AsRef<str>>(&mut self, message: T) {
+        let message = String::from(message.as_ref()) + "\n";
         debug!("{} sending {}", self, message);
-        let message = message + "\n";
         let bytes = message.as_bytes();
         match self.stream.write(bytes) {
             Ok(_) => (),
