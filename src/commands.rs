@@ -1,5 +1,5 @@
 use std::str;
-use regex::{Regex, Captures};
+use regex::Regex;
 
 #[derive(Debug, PartialEq)]
 pub enum Command {
@@ -11,11 +11,11 @@ pub enum Command {
 
 struct Rule {
     regex: Regex,
-    builder : fn(Captures) -> Command,
+    builder : fn(Vec<String>) -> Command,
 }
 
 impl Rule {
-    fn new(regex : &str, builder: fn(Captures) -> Command) -> Self {
+    fn new(regex : &str, builder: fn(Vec<String>) -> Command) -> Self {
         Rule {
             regex : Regex::new(regex).unwrap(),
             builder: builder,
@@ -28,7 +28,12 @@ impl Rule {
         self.regex.captures(input).map(
             // And use them on our builder function
             // The extra parentheses are needed to call the builder function
-            |captures| (self.builder)(captures)
+            |captures| (self.builder)(captures.iter().map(
+                |cap| match cap {
+                    Some(m) => String::from(m.as_str()),
+                    None => String::new(),
+                }
+            ).collect())
         )
     }
 }
@@ -65,19 +70,14 @@ impl Parser {
 }
 
 // Where the magic happens !
-fn rule_list(_ : Captures) -> Command {Command::List}
-fn rule_get(captures : Captures) -> Command {
-    // TODO: clean this shit
-    let key = captures.get(1).unwrap().as_str();
-    Command::Get(String::from(key))
+fn rule_list(_ : Vec<String>) -> Command {Command::List}
+fn rule_get(items : Vec<String>) -> Command {
+    Command::Get(items[1].clone())
 }
-fn rule_put(captures : Captures) -> Command {
-    // TODO: clean this shit
-    let key = captures.get(1).unwrap().as_str();
-    let value = captures.get(2).unwrap().as_str();
-    Command::Put(String::from(key), String::from(value))
+fn rule_put(items: Vec<String>) -> Command {
+    Command::Put(items[1].clone(), items[2].clone())
 }
-fn rule_quit(_ : Captures) -> Command {Command::Quit}
+fn rule_quit(_ : Vec<String>) -> Command {Command::Quit}
 
 
 #[test]
