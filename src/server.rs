@@ -1,42 +1,56 @@
 use std::net::{TcpListener, TcpStream};
-use std::collections::VecDeque;
+use std::collections::HashMap;
 use std::sync::{Arc,RwLock};
 use commands::Command;
 use client::{Client, ClientError};
 use std::thread;
 
 struct Database {
-    lock: RwLock<VecDeque<String>>,
+    lock: RwLock<HashMap<String, String>>,
 }
 
 #[derive(Debug)]
 enum DBError {
     Locked,
     NoData,
+    Exists,
 }
 
 impl Database {
     fn new() -> Self {
         Database {
-            lock : RwLock::new(VecDeque::default()),
+            lock : RwLock::new(HashMap::default()),
         }
     }
 
     // Read last value using lock
-    fn get(& self) -> Result<String, DBError> {
-        match self.lock.write() {
-            Ok(mut data) => data.pop_back().ok_or(DBError::NoData),
+    fn get(& self, key : String) -> Result<String, DBError> {
+        match self.lock.read() {
+            Ok(data) => data.get(&key).map(|x| x.clone()).ok_or(DBError::NoData),
             Err(_) => Err(DBError::Locked),
         }
     }
 
     // Put value into database using lock
-    fn put(& self, value : String) -> Result<String, DBError> {
+    // do not allow overriding
+    fn put(& self, key : String, value : String) -> Result<String, DBError> {
         match self.lock.write() {
             Ok(mut data) => {
-                data.push_back(value.clone());
-                Ok(value)
+                if data.contains_key(&key) {
+                    Err(DBError::Exists)
+                } else {
+                    data.insert(key.clone(), value);
+                    Ok(key)
+                }
             },
+            Err(_) => Err(DBError::Locked),
+        }
+    }
+
+    // List all the keys in database
+    fn list(&self) -> Result<Vec<String>, DBError> {
+        match self.lock.read() {
+            Ok(data) => Ok(data.keys().map(|x| x.clone()).collect()),
             Err(_) => Err(DBError::Locked),
         }
     }
@@ -83,18 +97,29 @@ impl Server {
         // Loop on command received
         loop {
             match client.wait_command() {
-
-                Ok(Command::Get) => {
-                    info!("{} >> Get", client);
-                    match db.get() {
+                Ok(Command::List) => {
+                    info!("{} >> List", client);
+                    match db.list() {
+                        Ok(keys) => {
+                            client.send(format!("{} keys.", keys.len()));
+                            for k in keys {
+                                client.send(format!(" > {}", k))
+                            }
+                        }
+                        Err(e) => client.send(format!("Db Error: {:?}", e)),
+                    }
+                }
+                Ok(Command::Get(key)) => {
+                    info!("{} >> Get({})", client, key);
+                    match db.get(key) {
                         Ok(x) => client.send(format!("Last value = {}", x)),
                         Err(DBError::NoData) => client.send("No data !"),
                         Err(e) => client.send(format!("Db Error: {:?}", e)),
                     }
                 }
-                Ok(Command::Put(x)) => {
-                    info!("{} >> Put({})", client, x);
-                    match db.put(x) {
+                Ok(Command::Put(key, value)) => {
+                    info!("{} >> Put({}, {})", client, key, value);
+                    match db.put(key, value) {
                         Ok(x) => client.send(format!("Stored {}", x)),
                         Err(e) => client.send(format!("Db Error: {:?}", e)),
                     }
