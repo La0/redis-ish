@@ -15,6 +15,6 @@ fn main() {
     info!("Starting Redis-ish");
 
     // Run server
-    let mut server = Server::new(String::from("127.0.0.1:1234"));
+    let server = Server::new(String::from("127.0.0.1:1234"));
     server.run();
 }
