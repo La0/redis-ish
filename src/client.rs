@@ -12,20 +12,26 @@ pub enum ClientError {
 }
 
 pub struct Client {
+    id : u32,
     stream : TcpStream,
     parser : Parser,
 }
 
 impl fmt::Display for Client {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Client {:?}", self.stream.peer_addr())
+        match self.stream.peer_addr() {
+            Ok(addr) => write!(f, "Client #{} {}:{}", self.id, addr.ip(), addr.port()), 
+            Err(e) => write!(f, "Client #{} {}", self.id, e), 
+        }
+        
     }
 }
 
 impl Client {
 
-    pub fn new(stream : TcpStream) -> Self {
+    pub fn new(stream : TcpStream, id : u32) -> Self {
         Client {
+            id : id,
             stream: stream,
             parser: Parser::new(),
         }

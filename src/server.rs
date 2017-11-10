@@ -1,6 +1,7 @@
 use std::net::{TcpListener, TcpStream};
 use std::collections::HashMap;
 use std::sync::{Arc,RwLock};
+use std::cell::Cell;
 use commands::Command;
 use client::{Client, ClientError};
 use std::thread;
@@ -60,6 +61,7 @@ impl Database {
 pub struct Server {
     listener : TcpListener,
     database: Arc<Database>,
+    connections: Cell<u32>,
 }
 
 impl Server {
@@ -69,6 +71,7 @@ impl Server {
         Server {
             listener: TcpListener::bind(bind_to).unwrap(), 
             database: Arc::new(Database::new()),
+            connections: Cell::new(0),
         }
     }
 
@@ -77,9 +80,13 @@ impl Server {
         for stream in self.listener.incoming() {
             match stream {
                 Ok(stream) => {
+                    // Increment connections
+                    let nb = self.connections.get() + 1;
+                    self.connections.set(nb);
+
                     // Create new client thread with a pointer to database
                     let thread_db = Arc::clone(&self.database);
-                    thread::spawn(move || Server::new_client(stream, thread_db));
+                    thread::spawn(move || Server::new_client(stream, nb, thread_db));
                 }
                 Err(e) => error!("Network error : couldn't get client {:?}", e),
             }
@@ -87,8 +94,8 @@ impl Server {
     }
 
     // Threaded client management
-    fn new_client(stream : TcpStream, db : Arc<Database>) {
-        let mut client = Client::new(stream);
+    fn new_client(stream : TcpStream, id : u32, db : Arc<Database>) {
+        let mut client = Client::new(stream, id);
         info!("New {}", client);
 
         // Be nice, say hello
